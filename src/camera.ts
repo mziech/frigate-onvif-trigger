@@ -1,6 +1,6 @@
 import {CameraConfig} from "./config";
 import {Cam} from "onvif/promises";
-import createLogger, {createEventLogger} from "./logger";
+import {createLogger, createEventLogger} from "./logger";
 import {Logger} from "winston";
 import Frigate, {FrigateLabel} from "./frigate";
 
@@ -59,7 +59,7 @@ export default class Camera {
         this.logger.info(`Camera supports events: ${this.hasEvents}`)
         if (this.hasEvents) {
             const eventProperties = await this.cam.getEventProperties()
-            this.logger.info(`Event properties: ${JSON.stringify(eventProperties, null, 2)}`)
+            this.logger.debug(`Event properties: ${JSON.stringify(eventProperties, null, 2)}`)
             let events = {}
             const walkEvents = (path: string, nodes) => {
                 for (let [k, v] of Object.entries(nodes)) {
@@ -77,24 +77,30 @@ export default class Camera {
 
     public listen(frigate: Frigate) {
         this.cam.on('event', (event) => {
-            eventLogger.info("Event", { cameraName: this.name, event })
-            const topic = this.getEventTopic(event)
-            const data = this.getEventData(event)
-            let currentState = data[TOPIC_PRESETS[topic].stateKey];
-            if (this.topicState[topic] && this.topicState[topic].lastState !== currentState) {
-                this.logger.info(`Got state change event on ${topic} with data: ${JSON.stringify(data)}`)
-                if (currentState) {
-                    frigate.createEvent(this.name, TOPIC_PRESETS[topic].label, {
-                        include_recording: true
-                    })
-                } else if (this.topicState[topic].eventId) {
-                    frigate.endEvent(this.topicState[topic].eventId, {
-                        end_time: new Date().toISOString()
-                    }).then(() => {
-                        this.topicState[topic].eventId = undefined
-                    })
+            try {
+                eventLogger.info("Event", {cameraName: this.name, event})
+                const topic = this.getEventTopic(event)
+                if (TOPIC_PRESETS[topic]) {
+                    const data = this.getEventData(event)
+                    let currentState = data[TOPIC_PRESETS[topic].stateKey];
+                    if (this.topicState[topic] && this.topicState[topic].lastState !== currentState) {
+                        this.logger.info(`Got state change event on ${topic} with data: ${JSON.stringify(data)}`)
+                        if (currentState) {
+                            frigate.createEvent(this.name, TOPIC_PRESETS[topic].label, {
+                                include_recording: true
+                            })
+                        } else if (this.topicState[topic].eventId) {
+                            frigate.endEvent(this.topicState[topic].eventId, {
+                                end_time: new Date().toISOString()
+                            }).then(() => {
+                                this.topicState[topic].eventId = undefined
+                            })
+                        }
+                        this.topicState[topic].lastState = currentState
+                    }
                 }
-                this.topicState[topic].lastState = currentState
+            } catch (e) {
+                this.logger.error(`Error while processing event: ${JSON.stringify(event)}`, e)
             }
         })
     }

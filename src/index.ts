@@ -1,4 +1,4 @@
-import createLogger from "./logger";
+import {createLogger} from "./logger";
 import Camera from "./camera";
 import {readFrigateConfig} from "./config"
 import Frigate from "./frigate";

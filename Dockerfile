@@ -21,7 +21,7 @@ VOLUME /config
 VOLUME /logs
 CMD ["node", "dist/index.js"]
 
-ENV FRIGATE_CONFIG=/config/frigate.conf
-ENV EVENT_LOG=/logs/event.log
+ENV FRIGATE_CONFIG=/config/config.yaml
+ENV EVENT_LOG=/logs/event
 
 COPY --from=build /work /app

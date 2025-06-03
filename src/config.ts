@@ -1,6 +1,6 @@
 import * as yaml from "js-yaml";
 import * as fs from "fs/promises";
-import createLogger from "./logger";
+import {createLogger} from "./logger";
 
 const logger = createLogger("config");
 
