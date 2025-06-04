@@ -22,8 +22,8 @@ interface EndEventRequest {
 export default class Frigate {
     private client: Axios;
 
-    constructor(url) {
-        this.client = new Axios({url})
+    constructor(baseUrl) {
+        this.client = new Axios({baseUrl})
     }
 
     public async createEvent(cameraName: string, label: FrigateLabel, body: CreateEventRequest): Promise<string> {
