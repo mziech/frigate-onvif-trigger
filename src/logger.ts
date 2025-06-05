@@ -1,16 +1,20 @@
 import * as winston from "winston";
 import "winston-daily-rotate-file";
 
+const SKIP_OTHER = new Set(['message', 'level', 'timestamp', 'filename'])
+
 function maybeOtherFields(info): string {
-    let other = { ...info }
-    delete other.message
-    delete other.level
-    delete other.timestamp
-    delete other.filename
-    if (Object.entries(other).length === 0) {
-        return ""
+    let s = ''
+    for (const [k, v] of Object.entries(info)) {
+        if (!SKIP_OTHER.has(k)) {
+            try {
+                s = `${s} ${k}: ${JSON.stringify(v, null, 2)}`
+            } catch (e) {
+                s = `${s} ${k}: ${v}`
+            }
+        }
     }
-    return ` ${JSON.stringify(other, null, 2)}`
+    return s
 }
 
 function createFormat() {
