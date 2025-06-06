@@ -91,7 +91,7 @@ export default class Camera {
                             }).then(eventId => this.topicState[topic].eventId = eventId)
                         } else if (this.topicState[topic].eventId) {
                             frigate.endEvent(this.topicState[topic].eventId, {
-                                end_time: new Date().toISOString()
+                                end_time: new Date().getTime()
                             }).then(() => {
                                 this.topicState[topic].eventId = undefined
                             })

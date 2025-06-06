@@ -1,5 +1,5 @@
 import {createLogger} from "./logger";
-import axios, {Axios} from "axios";
+import axios, {Axios, AxiosError} from "axios";
 
 const logger = createLogger("frigate")
 
@@ -28,7 +28,7 @@ interface CreateEventResponse extends FrigateResponse {
 }
 
 interface EndEventRequest {
-    end_time?: string
+    end_time?: number
 }
 
 /**
@@ -69,7 +69,7 @@ export default class Frigate {
             eventId = resp.data.event_id
             logger.info(`Started Frigate event ID ${eventId} for camera ${cameraName} and label ${label}: ${JSON.stringify(resp.data)}`)
         } catch (e) {
-            logger.error(`Failed to create Frigate event for camera ${cameraName}: ${JSON.stringify(body)}`, e)
+            logger.error(`Failed to create Frigate event for camera ${cameraName}: ${JSON.stringify(body)}`, this.formatAxiosError(e))
         }
         return eventId
     }
@@ -79,8 +79,23 @@ export default class Frigate {
             const resp = await this.client.put<FrigateResponse>(`/api/events/${encodeURIComponent(eventId)}/end`, body)
             logger.info(`Ended Frigate event ID ${eventId}: ${JSON.stringify(resp.data)}`)
         } catch (e) {
-            logger.error(`Could not end Frigate event ID ${eventId}`, e)
+            if (e instanceof AxiosError) {
+
+            } else {
+                logger.error(`Could not end Frigate event ID ${eventId}`, this.formatAxiosError(e))
+            }
         }
+    }
+
+    private formatAxiosError(e) {
+        if (e instanceof AxiosError) {
+            return {
+                status: e.status,
+                message: e.message,
+                body: e.response.data
+            }
+        }
+        return e
     }
 
 }
