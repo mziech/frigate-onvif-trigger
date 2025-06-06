@@ -88,7 +88,7 @@ export default class Camera {
                         if (currentState) {
                             frigate.createEvent(this.name, TOPIC_PRESETS[topic].label, {
                                 include_recording: true
-                            })
+                            }).then(eventId => this.topicState[topic].eventId = eventId)
                         } else if (this.topicState[topic].eventId) {
                             frigate.endEvent(this.topicState[topic].eventId, {
                                 end_time: new Date().toISOString()
