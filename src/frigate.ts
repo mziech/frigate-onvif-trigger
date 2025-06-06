@@ -1,5 +1,5 @@
-import {Axios} from "axios";
 import {createLogger} from "./logger";
+import axios, {Axios} from "axios";
 
 const logger = createLogger("frigate")
 
@@ -39,7 +39,7 @@ export default class Frigate {
 
     constructor(baseURL) {
         logger.info(`Using Frigate API at ${baseURL}`)
-        this.client = new Axios({
+        this.client = axios.create({
             baseURL,
             responseType: "json",
             timeout: 60000,
