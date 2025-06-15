@@ -45,7 +45,7 @@ export default class Camera {
         }
     }
 
-    async init() : Promise<void> {
+    async init(frigate: Frigate) : Promise<void> {
         try {
             await this.cam.connect()
             const info = await this.cam.getDeviceInformation()
@@ -72,15 +72,16 @@ export default class Camera {
                     }
                 }
                 walkEvents("", eventProperties.topicSet)
-                this.logger.info(`Found events:\n   ${Object.keys(events).join("\n  ")}`)
+                this.logger.info(`Found events:\n  ${Object.keys(events).join("\n  ")}`)
             }
+            this.listen(frigate)
         } catch (e) {
             this.logger.error("Connection failed retrying in background", e)
             setTimeout(() => this.init(), 10000)
         }
     }
 
-    public listen(frigate: Frigate) {
+    private listen(frigate: Frigate) {
         this.cam.on('event', (event) => {
             try {
                 eventLogger.info("Event", {cameraName: this.name, event})
@@ -149,7 +150,7 @@ export default class Camera {
         this.cam.unsubscribe()
     }
 
-    static async create(cameraName: string, cameraConfig: CameraConfig) {
+    static async create(cameraName: string, cameraConfig: CameraConfig, frigate: Frigate) {
         const cam = new Cam({
             hostname: cameraConfig.onvif.host,
             port: cameraConfig.onvif.port || 8000,
@@ -158,7 +159,7 @@ export default class Camera {
             path: cameraConfig.onvif.path,
         })
         const camera = new Camera(cameraName, cam)
-        await camera.init()
+        await camera.init(frigate)
         return camera
     }
 }

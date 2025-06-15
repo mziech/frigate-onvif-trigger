@@ -2,6 +2,7 @@ import {createLogger} from "./logger";
 import Camera from "./camera";
 import {readFrigateConfigFromApi, readFrigateConfigFromFile} from "./config"
 import Frigate from "./frigate";
+import * as wtf from "wtfnode";
 
 const logger = createLogger("index");
 
@@ -28,24 +29,23 @@ const logger = createLogger("index");
         }
 
         logger.info(`Configuring camera ${cameraName}`);
-        const cam = await Camera.create(cameraName, camera)
-        cameras.push(cam)
-        cam.listen(frigate)
+        cameras.push(await Camera.create(cameraName, camera, frigate))
     }
 
     logger.info("All cameras configured")
 
     const gracefulShutdown = () => {
         logger.info('Shutting down gracefully...');
-        cameras.forEach(cam => cam.close())
         setTimeout(() => {
-            console.error('Could not close connections in time, forcefully shutting down');
-            process.exit(1);
-        }, 5000);
+            logger.error('Could not close camera connections in time, forcefully shutting down')
+            wtf.dump()
+            process.exit(1)
+        }, 5000)
+        cameras.forEach(cam => cam.close())
     }
 
-    process.on('SIGTERM', gracefulShutdown);
-    process.on('SIGINT', gracefulShutdown);
+    process.on('SIGTERM', gracefulShutdown)
+    process.on('SIGINT', gracefulShutdown)
 
 })().then(() => {
     logger.info("Finished")

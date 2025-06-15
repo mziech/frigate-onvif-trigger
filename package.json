@@ -12,6 +12,7 @@
   "private": true,
   "devDependencies": {
     "@types/node": "^22.15.29",
+    "@types/wtfnode": "^0.7.3",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   },
@@ -21,6 +22,7 @@
     "js-yaml": "^4.1.0",
     "onvif": "^0.8.0",
     "winston": "^3.17.0",
-    "winston-daily-rotate-file": "^5.0.0"
+    "winston-daily-rotate-file": "^5.0.0",
+    "wtfnode": "^0.10.0"
   }
 }
