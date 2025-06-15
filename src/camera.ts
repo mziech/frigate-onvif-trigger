@@ -46,32 +46,37 @@ export default class Camera {
     }
 
     async init() : Promise<void> {
-        await this.cam.connect()
-        const info = await this.cam.getDeviceInformation()
-        this.logger.info("Manufacturer: " + info.manufacturer)
-        this.logger.info("Model: " + info.model)
-        this.logger.info("Firmware: " + info.firmwareVersion)
-        this.logger.info("Serialnumber: " + info.serialNumber)
+        try {
+            await this.cam.connect()
+            const info = await this.cam.getDeviceInformation()
+            this.logger.info("Manufacturer: " + info.manufacturer)
+            this.logger.info("Model: " + info.model)
+            this.logger.info("Firmware: " + info.firmwareVersion)
+            this.logger.info("Serialnumber: " + info.serialNumber)
 
-        const capabilities = await this.cam.getCapabilities()
-        this.logger.debug(`Capabilities: ${JSON.stringify(capabilities, null, 2)}`)
-        this.hasEvents = capabilities.events?.WSPullPointSupport === true
-        this.logger.info(`Camera supports events: ${this.hasEvents}`)
-        if (this.hasEvents) {
-            const eventProperties = await this.cam.getEventProperties()
-            this.logger.debug(`Event properties: ${JSON.stringify(eventProperties, null, 2)}`)
-            let events = {}
-            const walkEvents = (path: string, nodes) => {
-                for (let [k, v] of Object.entries(nodes)) {
-                    if (v["messageDescription"]) {
-                        events[path + k] = v
-                    } else if (k !== '$' && typeof v === 'object') {
-                        walkEvents(path + k + "/", v)
+            const capabilities = await this.cam.getCapabilities()
+            this.logger.debug(`Capabilities: ${JSON.stringify(capabilities, null, 2)}`)
+            this.hasEvents = capabilities.events?.WSPullPointSupport === true
+            this.logger.info(`Camera supports events: ${this.hasEvents}`)
+            if (this.hasEvents) {
+                const eventProperties = await this.cam.getEventProperties()
+                this.logger.debug(`Event properties: ${JSON.stringify(eventProperties, null, 2)}`)
+                let events = {}
+                const walkEvents = (path: string, nodes) => {
+                    for (let [k, v] of Object.entries(nodes)) {
+                        if (v["messageDescription"]) {
+                            events[path + k] = v
+                        } else if (k !== '$' && typeof v === 'object') {
+                            walkEvents(path + k + "/", v)
+                        }
                     }
                 }
+                walkEvents("", eventProperties.topicSet)
+                this.logger.info(`Found events:\n   ${Object.keys(events).join("\n  ")}`)
             }
-            walkEvents("", eventProperties.topicSet)
-            this.logger.info(`Found events: ${Object.keys(events)}`)
+        } catch (e) {
+            this.logger.error("Connection failed retrying in background", e)
+            setTimeout(() => this.init(), 10000)
         }
     }
 
@@ -103,6 +108,8 @@ export default class Camera {
                 this.logger.error(`Error while processing event: ${JSON.stringify(event)}`, e)
             }
         })
+        this.cam.on("connect", () => this.logger.info("Got connect event"))
+        this.cam.on("eventsError", error => this.logger.error("Got events error", error))
     }
 
     private getEventTopic(event): string {
@@ -138,7 +145,8 @@ export default class Camera {
 
     public async close() {
         this.logger.info("Closing camera")
-        await this.cam.unsubscribe()
+        this.cam.removeAllListeners()
+        this.cam.unsubscribe()
     }
 
     static async create(cameraName: string, cameraConfig: CameraConfig) {

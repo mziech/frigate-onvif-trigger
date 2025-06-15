@@ -15,6 +15,7 @@ const logger = createLogger("index");
         process.exit(1)
     }
 
+    let cameras: Camera[] = []
     for (const [cameraName, camera] of Object.entries(config.cameras)) {
         if (camera.enabled === false) {
             logger.info(`Skipping camera ${cameraName}, not enabled`)
@@ -27,9 +28,25 @@ const logger = createLogger("index");
         }
 
         logger.info(`Configuring camera ${cameraName}`);
-        (await Camera.create(cameraName, camera)).listen(frigate)
+        const cam = await Camera.create(cameraName, camera)
+        cameras.push(cam)
+        cam.listen(frigate)
     }
+
     logger.info("All cameras configured")
+
+    const gracefulShutdown = () => {
+        logger.info('Shutting down gracefully...');
+        cameras.forEach(cam => cam.close())
+        setTimeout(() => {
+            console.error('Could not close connections in time, forcefully shutting down');
+            process.exit(1);
+        }, 5000);
+    }
+
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+
 })().then(() => {
     logger.info("Finished")
 }).catch(err => {

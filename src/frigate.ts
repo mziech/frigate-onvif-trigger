@@ -51,6 +51,9 @@ export default class Frigate {
     }
 
     public async printVersion() {
+        if (process.env["SKIP_FRIGATE_CHECK"] === "TRUE") {
+            return
+        }
         const resp = await this.client.get<string>("/api/version")
         logger.info(`Frigate version is ${resp.data}`)
     }
