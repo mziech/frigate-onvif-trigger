@@ -77,7 +77,7 @@ export default class Camera {
             this.listen(frigate)
         } catch (e) {
             this.logger.error("Connection failed retrying in background", e)
-            setTimeout(() => this.init(), 10000)
+            setTimeout(() => this.init(frigate), 10000)
         }
     }
 
