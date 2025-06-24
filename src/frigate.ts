@@ -7,6 +7,8 @@ export enum FrigateLabel {
     person = 'person',
     car = 'car',
     dog = 'dog',
+    fire_hydrant = 'fire hydrant',
+    eye_glasses = 'eye glasses',
 }
 
 interface CreateEventRequest {

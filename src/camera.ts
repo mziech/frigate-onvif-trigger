@@ -15,15 +15,16 @@ interface TopicState {
 interface TopicPreset {
     stateKey: string
     label: FrigateLabel
+    score: number
 }
 
 const TOPIC_PRESETS : Record<string, TopicPreset> = {
-    'RuleEngine/CellMotionDetector/Motion': {stateKey: 'IsMotion', label: FrigateLabel.person},
-    'VideoSource/MotionAlarm': {stateKey: 'State', label: FrigateLabel.person},
-    'RuleEngine/MyRuleDetector/FaceDetect': {stateKey: 'State', label: FrigateLabel.person},
-    'RuleEngine/MyRuleDetector/PeopleDetect': {stateKey: 'State', label: FrigateLabel.person},
-    'RuleEngine/MyRuleDetector/VehicleDetect': {stateKey: 'State', label: FrigateLabel.car},
-    'RuleEngine/MyRuleDetector/DogCatDetect': {stateKey: 'State', label: FrigateLabel.dog},
+    'RuleEngine/CellMotionDetector/Motion': {stateKey: 'IsMotion', label: FrigateLabel.eye_glasses, score: 0.5},
+    'VideoSource/MotionAlarm': {stateKey: 'State', label: FrigateLabel.fire_hydrant, score: 0.5},
+    'RuleEngine/MyRuleDetector/FaceDetect': {stateKey: 'State', label: FrigateLabel.person, score: 1.0},
+    'RuleEngine/MyRuleDetector/PeopleDetect': {stateKey: 'State', label: FrigateLabel.person, score: 1.0},
+    'RuleEngine/MyRuleDetector/VehicleDetect': {stateKey: 'State', label: FrigateLabel.car, score: 1.0},
+    'RuleEngine/MyRuleDetector/DogCatDetect': {stateKey: 'State', label: FrigateLabel.dog, score: 1.0},
 }
 
 export default class Camera {
@@ -93,7 +94,8 @@ export default class Camera {
                         this.logger.info(`Got state change event on ${topic} with data: ${JSON.stringify(data)}`)
                         if (currentState) {
                             frigate.createEvent(this.name, TOPIC_PRESETS[topic].label, {
-                                include_recording: true
+                                include_recording: true,
+                                score: TOPIC_PRESETS[topic].score,
                             }).then(eventId => this.topicState[topic].eventId = eventId)
                         } else if (this.topicState[topic].eventId) {
                             frigate.endEvent(this.topicState[topic].eventId, {
