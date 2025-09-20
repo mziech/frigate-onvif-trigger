@@ -30,7 +30,7 @@ interface CreateEventResponse extends FrigateResponse {
 }
 
 interface EndEventRequest {
-    end_time?: number
+    end_time?: number  // in seconds
 }
 
 /**

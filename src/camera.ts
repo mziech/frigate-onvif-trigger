@@ -98,9 +98,7 @@ export default class Camera {
                                 score: TOPIC_PRESETS[topic].score,
                             }).then(eventId => this.topicState[topic].eventId = eventId)
                         } else if (this.topicState[topic].eventId) {
-                            frigate.endEvent(this.topicState[topic].eventId, {
-                                end_time: new Date().getTime()
-                            }).then(() => {
+                            frigate.endEvent(this.topicState[topic].eventId, {}).then(() => {
                                 this.topicState[topic].eventId = undefined
                             })
                         }
