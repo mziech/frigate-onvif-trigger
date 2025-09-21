@@ -1,10 +1,10 @@
-import {CameraConfig} from "./config";
-import {Cam} from "onvif/promises";
-import {createLogger, createEventLogger} from "./logger";
-import {Logger} from "winston";
-import Frigate, {FrigateLabel} from "./frigate";
+import {CameraConfig} from "./config"
+import {Cam} from "onvif/promises"
+import {createLogger, createEventLogger} from "./logger"
+import {Logger} from "winston"
+import Frigate, {FrigateLabel} from "./frigate"
 
-const logger = createLogger("camera");
+const logger = createLogger("camera")
 const eventLogger = createEventLogger()
 
 interface TopicState {
@@ -12,20 +12,34 @@ interface TopicState {
     eventId?: string
 }
 
+enum TopicCategory {
+    motion,
+    person,
+    vehicle,
+    animal,
+}
+
 interface TopicPreset {
     stateKey: string
     label: FrigateLabel
+    category: TopicCategory
     score: number
 }
 
 const TOPIC_PRESETS : Record<string, TopicPreset> = {
-    'RuleEngine/CellMotionDetector/Motion': {stateKey: 'IsMotion', label: FrigateLabel.eye_glasses, score: 0.5},
-    'VideoSource/MotionAlarm': {stateKey: 'State', label: FrigateLabel.fire_hydrant, score: 0.5},
-    'RuleEngine/MyRuleDetector/FaceDetect': {stateKey: 'State', label: FrigateLabel.person, score: 1.0},
-    'RuleEngine/MyRuleDetector/PeopleDetect': {stateKey: 'State', label: FrigateLabel.person, score: 1.0},
-    'RuleEngine/MyRuleDetector/VehicleDetect': {stateKey: 'State', label: FrigateLabel.car, score: 1.0},
-    'RuleEngine/MyRuleDetector/DogCatDetect': {stateKey: 'State', label: FrigateLabel.dog, score: 1.0},
+    'RuleEngine/CellMotionDetector/Motion': {stateKey: 'IsMotion', category: TopicCategory.motion, label: FrigateLabel.eye_glasses, score: 0.5},
+    'VideoSource/MotionAlarm': {stateKey: 'State', category: TopicCategory.motion, label: FrigateLabel.fire_hydrant, score: 0.5},
+    'RuleEngine/MyRuleDetector/FaceDetect': {stateKey: 'State', category: TopicCategory.person, label: FrigateLabel.person, score: 1.0},
+    'RuleEngine/MyRuleDetector/PeopleDetect': {stateKey: 'State', category: TopicCategory.person, label: FrigateLabel.person, score: 1.0},
+    'RuleEngine/MyRuleDetector/VehicleDetect': {stateKey: 'State', category: TopicCategory.vehicle, label: FrigateLabel.car, score: 1.0},
+    'RuleEngine/MyRuleDetector/DogCatDetect': {stateKey: 'State', category: TopicCategory.animal, label: FrigateLabel.dog, score: 1.0},
 }
+
+const DEFAULT_TOPIC_CATEGORY_EXCLUDES: Set<TopicCategory> = new Set<TopicCategory>((process.env["TOPIC_CATEGORY_EXCLUDES"] || "")
+    .split(" *, *")
+    .filter(s => s in TopicCategory)
+    .map(s => TopicCategory[s])
+)
 
 export default class Camera {
     private name: string
@@ -87,7 +101,7 @@ export default class Camera {
             try {
                 eventLogger.info("Event", {cameraName: this.name, event})
                 const topic = this.getEventTopic(event)
-                if (TOPIC_PRESETS[topic]) {
+                if (this.shouldLogTopicPreset(TOPIC_PRESETS[topic])) {
                     const data = this.getEventData(event)
                     let currentState = data[TOPIC_PRESETS[topic].stateKey];
                     if (this.topicState[topic] && this.topicState[topic].lastState !== currentState) {
@@ -148,6 +162,18 @@ export default class Camera {
         this.logger.info("Closing camera")
         this.cam.removeAllListeners()
         this.cam.unsubscribe()
+    }
+
+    private shouldLogTopicPreset(topic: TopicPreset|undefined): boolean {
+        if (topic === undefined) {
+            return false
+        }
+
+        if (DEFAULT_TOPIC_CATEGORY_EXCLUDES.has(topic.category)) {
+            return false
+        }
+
+        return true
     }
 
     static async create(cameraName: string, cameraConfig: CameraConfig, frigate: Frigate) {
