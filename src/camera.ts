@@ -66,7 +66,7 @@ const TOPIC_PRESETS: Record<string, TopicPreset> = {
     },
 }
 
-const DEFAULT_TOPIC_CATEGORY_EXCLUDES: Set<TopicCategory> = new Set<TopicCategory>((process.env[" "] || "")
+const DEFAULT_TOPIC_CATEGORY_EXCLUDES: Set<TopicCategory> = new Set<TopicCategory>((process.env["TOPIC_CATEGORY_EXCLUDES"] || "")
     .split(" *, *")
     .filter(s => s in TopicCategory)
     .map(s => TopicCategory[s])
