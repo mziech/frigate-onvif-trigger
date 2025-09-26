@@ -3,10 +3,12 @@ import Camera from "./camera";
 import {readFrigateConfigFromApi, readFrigateConfigFromFile} from "./config"
 import Frigate from "./frigate";
 import * as wtf from "wtfnode";
+import MqttWrapper from "./MqttWrapper";
 
 const logger = createLogger("index");
 
 (async function() {
+    const mqtt = new MqttWrapper()
     const frigate = new Frigate(process.env['FRIGATE_URL'] || "http://localhost:5000")
     await frigate.printVersion()
 
@@ -29,7 +31,7 @@ const logger = createLogger("index");
         }
 
         logger.info(`Configuring camera ${cameraName}`);
-        cameras.push(await Camera.create(cameraName, camera, frigate))
+        cameras.push(await Camera.create(cameraName, camera, frigate, mqtt))
     }
 
     logger.info("All cameras configured")
@@ -42,6 +44,7 @@ const logger = createLogger("index");
             process.exit(1)
         }, 5000)
         cameras.forEach(cam => cam.close())
+        mqtt.close()
     }
 
     process.on('SIGTERM', gracefulShutdown)

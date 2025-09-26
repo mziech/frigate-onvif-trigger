@@ -3,6 +3,7 @@ import {Cam} from "onvif/promises"
 import {createLogger, createEventLogger} from "./logger"
 import {Logger} from "winston"
 import Frigate, {FrigateLabel} from "./frigate"
+import MqttWrapper from "./MqttWrapper"
 
 const logger = createLogger("camera")
 const eventLogger = createEventLogger()
@@ -26,16 +27,46 @@ interface TopicPreset {
     score: number
 }
 
-const TOPIC_PRESETS : Record<string, TopicPreset> = {
-    'RuleEngine/CellMotionDetector/Motion': {stateKey: 'IsMotion', category: TopicCategory.motion, label: FrigateLabel.eye_glasses, score: 0.5},
-    'VideoSource/MotionAlarm': {stateKey: 'State', category: TopicCategory.motion, label: FrigateLabel.fire_hydrant, score: 0.5},
-    'RuleEngine/MyRuleDetector/FaceDetect': {stateKey: 'State', category: TopicCategory.person, label: FrigateLabel.person, score: 1.0},
-    'RuleEngine/MyRuleDetector/PeopleDetect': {stateKey: 'State', category: TopicCategory.person, label: FrigateLabel.person, score: 1.0},
-    'RuleEngine/MyRuleDetector/VehicleDetect': {stateKey: 'State', category: TopicCategory.vehicle, label: FrigateLabel.car, score: 1.0},
-    'RuleEngine/MyRuleDetector/DogCatDetect': {stateKey: 'State', category: TopicCategory.animal, label: FrigateLabel.dog, score: 1.0},
+const TOPIC_PRESETS: Record<string, TopicPreset> = {
+    'RuleEngine/CellMotionDetector/Motion': {
+        stateKey: 'IsMotion',
+        category: TopicCategory.motion,
+        label: FrigateLabel.eye_glasses,
+        score: 0.5
+    },
+    'VideoSource/MotionAlarm': {
+        stateKey: 'State',
+        category: TopicCategory.motion,
+        label: FrigateLabel.fire_hydrant,
+        score: 0.5
+    },
+    'RuleEngine/MyRuleDetector/FaceDetect': {
+        stateKey: 'State',
+        category: TopicCategory.person,
+        label: FrigateLabel.person,
+        score: 1.0
+    },
+    'RuleEngine/MyRuleDetector/PeopleDetect': {
+        stateKey: 'State',
+        category: TopicCategory.person,
+        label: FrigateLabel.person,
+        score: 1.0
+    },
+    'RuleEngine/MyRuleDetector/VehicleDetect': {
+        stateKey: 'State',
+        category: TopicCategory.vehicle,
+        label: FrigateLabel.car,
+        score: 1.0
+    },
+    'RuleEngine/MyRuleDetector/DogCatDetect': {
+        stateKey: 'State',
+        category: TopicCategory.animal,
+        label: FrigateLabel.dog,
+        score: 1.0
+    },
 }
 
-const DEFAULT_TOPIC_CATEGORY_EXCLUDES: Set<TopicCategory> = new Set<TopicCategory>((process.env["TOPIC_CATEGORY_EXCLUDES"] || "")
+const DEFAULT_TOPIC_CATEGORY_EXCLUDES: Set<TopicCategory> = new Set<TopicCategory>((process.env[" "] || "")
     .split(" *, *")
     .filter(s => s in TopicCategory)
     .map(s => TopicCategory[s])
@@ -47,10 +78,12 @@ export default class Camera {
     private logger: Logger
     private hasEvents: boolean
     private topicState: Record<string, TopicState>
+    private mqtt: MqttWrapper;
 
-    constructor(name: string, cam) {
+    constructor(name: string, cam, mqtt: MqttWrapper) {
         this.name = name
         this.cam = cam
+        this.mqtt = mqtt;
         this.logger = createLogger("camera/" + name)
         this.topicState = {}
         for (let topic of Object.keys(TOPIC_PRESETS)) {
@@ -60,7 +93,7 @@ export default class Camera {
         }
     }
 
-    async init(frigate: Frigate) : Promise<void> {
+    async init(frigate: Frigate): Promise<void> {
         try {
             await this.cam.connect()
             const info = await this.cam.getDeviceInformation()
@@ -110,11 +143,15 @@ export default class Camera {
                             frigate.createEvent(this.name, TOPIC_PRESETS[topic].label, {
                                 include_recording: true,
                                 score: TOPIC_PRESETS[topic].score,
-                            }).then(eventId => this.topicState[topic].eventId = eventId)
+                            }).then(eventId => {
+                                this.topicState[topic].eventId = eventId
+                                this.mqtt.publishStart(eventId, this.name, TOPIC_PRESETS[topic].label, TOPIC_PRESETS[topic].score)
+                            })
                         } else if (this.topicState[topic].eventId) {
                             frigate.endEvent(this.topicState[topic].eventId, {}).then(() => {
                                 this.topicState[topic].eventId = undefined
                             })
+                            this.mqtt.publishEnd(this.topicState[topic].eventId, this.name)
                         }
                         this.topicState[topic].lastState = currentState
                     }
@@ -136,7 +173,7 @@ export default class Camera {
         return topic
     }
 
-    private  getEventData(event): Record<string, any> {
+    private getEventData(event): Record<string, any> {
         if (event.message.message.data && event.message.message.data.simpleItem) {
             if (Array.isArray(event.message.message.data.simpleItem)) {
                 let obj = []
@@ -151,7 +188,7 @@ export default class Camera {
             }
         } else if (event.message.message.data && event.message.message.data.elementItem) {
             this.logger.debug("Event data contains an elementItem")
-            return { elementItem: event.message.message.data.elementItem }
+            return {elementItem: event.message.message.data.elementItem}
         } else {
             this.logger.debug("Event data does not contain a simpleItem or elementItem")
             return {}
@@ -164,7 +201,7 @@ export default class Camera {
         this.cam.unsubscribe()
     }
 
-    private shouldLogTopicPreset(topic: TopicPreset|undefined): boolean {
+    private shouldLogTopicPreset(topic: TopicPreset | undefined): boolean {
         if (topic === undefined) {
             return false
         }
@@ -176,7 +213,7 @@ export default class Camera {
         return true
     }
 
-    static async create(cameraName: string, cameraConfig: CameraConfig, frigate: Frigate) {
+    static async create(cameraName: string, cameraConfig: CameraConfig, frigate: Frigate, mqtt: MqttWrapper) {
         const cam = new Cam({
             hostname: cameraConfig.onvif.host,
             port: cameraConfig.onvif.port || 8000,
@@ -184,7 +221,7 @@ export default class Camera {
             password: cameraConfig.onvif.password,
             path: cameraConfig.onvif.path,
         })
-        const camera = new Camera(cameraName, cam)
+        const camera = new Camera(cameraName, cam, mqtt)
         await camera.init(frigate)
         return camera
     }

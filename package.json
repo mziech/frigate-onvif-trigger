@@ -20,6 +20,7 @@
     "@types/js-yaml": "^4.0.9",
     "axios": "^1.9.0",
     "js-yaml": "^4.1.0",
+    "mqtt": "^5.14.1",
     "onvif": "^0.8.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",

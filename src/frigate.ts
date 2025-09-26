@@ -84,11 +84,7 @@ export default class Frigate {
             const resp = await this.client.put<FrigateResponse>(`/api/events/${encodeURIComponent(eventId)}/end`, body)
             logger.info(`Ended Frigate event ID ${eventId}: ${JSON.stringify(resp.data)}`)
         } catch (e) {
-            if (e instanceof AxiosError) {
-
-            } else {
-                logger.error(`Could not end Frigate event ID ${eventId}`, this.formatAxiosError(e))
-            }
+            logger.error(`Could not end Frigate event ID ${eventId}`, this.formatAxiosError(e))
         }
     }
 
