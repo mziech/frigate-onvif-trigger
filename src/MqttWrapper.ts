@@ -8,7 +8,7 @@ export default class MqttWrapper {
     private readonly topic: string;
 
     constructor() {
-        this.topic = process.env["MQTT_TOPIC"] || "/frigate-onvif-trigger/events"
+        this.topic = process.env["MQTT_TOPIC"] || "frigate-onvif-trigger/events"
         if (!process.env["MQTT_URI"]) {
             logger.info("Not sending MQTT events")
             this.client = null;
