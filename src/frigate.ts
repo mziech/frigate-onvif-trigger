@@ -12,12 +12,13 @@ export enum FrigateLabel {
 }
 
 interface CreateEventRequest {
-    source_type?: string
-    sub_label?: string
-    score?: number
-    duration?: number
-    include_recording?: boolean
-    draw?: any
+    start_time: number
+    source_type: string
+    sub_label: string
+    score: number
+    duration: number
+    include_recording: boolean
+    draw: any
 }
 
 interface FrigateResponse {
@@ -65,7 +66,7 @@ export default class Frigate {
         return resp.data
     }
 
-    public async createEvent(cameraName: string, label: FrigateLabel, body: CreateEventRequest): Promise<string> {
+    public async createEvent(cameraName: string, label: FrigateLabel, body: Partial<CreateEventRequest>): Promise<string> {
         let eventId: string = undefined
         try {
             const resp = await this.client.post<CreateEventResponse>(
@@ -79,7 +80,7 @@ export default class Frigate {
         return eventId
     }
 
-    public async endEvent(eventId: string, body: EndEventRequest): Promise<void> {
+    public async endEvent(eventId: string, body: Partial<EndEventRequest>): Promise<void> {
         try {
             const resp = await this.client.put<FrigateResponse>(`/api/events/${encodeURIComponent(eventId)}/end`, body)
             logger.info(`Ended Frigate event ID ${eventId}: ${JSON.stringify(resp.data)}`)

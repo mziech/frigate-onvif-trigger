@@ -141,6 +141,7 @@ export default class Camera {
                         this.logger.info(`Got state change event on ${topic} with data: ${JSON.stringify(data)}`)
                         if (currentState) {
                             frigate.createEvent(this.name, TOPIC_PRESETS[topic].label, {
+                                start_time: Math.floor(Date.now() / 1000),
                                 include_recording: true,
                                 score: TOPIC_PRESETS[topic].score,
                             }).then(eventId => {
@@ -148,7 +149,9 @@ export default class Camera {
                                 this.mqtt.publishStart(eventId, this.name, TOPIC_PRESETS[topic].label, TOPIC_PRESETS[topic].score)
                             })
                         } else if (this.topicState[topic].eventId) {
-                            frigate.endEvent(this.topicState[topic].eventId, {}).then(() => {
+                            frigate.endEvent(this.topicState[topic].eventId, {
+                                end_time: Math.ceil(Date.now() / 1000)
+                            }).then(() => {
                                 this.topicState[topic].eventId = undefined
                             })
                             this.mqtt.publishEnd(this.topicState[topic].eventId, this.name)
