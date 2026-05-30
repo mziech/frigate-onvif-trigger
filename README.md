@@ -1,3 +1,5 @@
+[![Docker](https://github.com/mziech/frigate-onvif-trigger/actions/workflows/docker.yml/badge.svg)](https://github.com/mziech/frigate-onvif-trigger/actions/workflows/docker.yml)
+
 # frigate-onvif-trigger
 
 This allows to consume events from ONVIF-compatible cameras and post them as events to the [Frigate](https://frigate.video/) API.
