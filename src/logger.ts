@@ -3,7 +3,7 @@ import "winston-daily-rotate-file";
 
 const SKIP_OTHER = new Set(['message', 'level', 'timestamp', 'filename'])
 
-function maybeOtherFields(info): string {
+function maybeOtherFields(info: object): string {
     let s = ''
     for (const [k, v] of Object.entries(info)) {
         if (!SKIP_OTHER.has(k)) {

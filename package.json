@@ -6,15 +6,15 @@
   "scripts": {
     "dev": "env SKIP_FRIGATE_CHECK=TRUE FRIGATE_CONFIG=frigate.yml npm start",
     "start": "tsx src/index.ts",
-    "build": "tsc --outDir dist src/index.ts",
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "private": true,
   "devDependencies": {
-    "@types/node": "^22.15.29",
+    "@types/node": "^24.1.0",
     "@types/wtfnode": "^0.7.3",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@types/js-yaml": "^4.0.9",

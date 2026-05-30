@@ -3,6 +3,16 @@ import {createLogger} from "./logger";
 
 const logger = createLogger("mqtt")
 
+interface MqttEvent {
+    type: "new"|"end";
+    after: {
+        id?: string;
+        camera: string;
+        label?: string;
+        score?: number;
+    }
+}
+
 export default class MqttWrapper {
     private readonly client: mqtt.MqttClient | null;
     private readonly topic: string;
@@ -26,7 +36,7 @@ export default class MqttWrapper {
         logger.info(`Sending MQTT events to ${process.env["MQTT_URI"]}, topic ${this.topic}`)
     }
 
-    public publishStart(id: string, camera: string, label: string, score: number) {
+    public publishStart(id: string|undefined, camera: string, label: string, score: number) {
         this.publishEvent({
             "type": "new",
             "after": {
@@ -44,7 +54,7 @@ export default class MqttWrapper {
         })
     }
 
-    public publishEvent(event) {
+    public publishEvent(event: MqttEvent) {
         if (!this.client) {
             return
         }

@@ -20,18 +20,18 @@ export interface FrigateConfig {
     cameras?: Record<string, CameraConfig>
 }
 
-export async function readFrigateConfigFromFile(): Promise<FrigateConfig> {
+export async function readFrigateConfigFromFile(): Promise<FrigateConfig|undefined> {
     try {
         const filename = process.env["FRIGATE_CONFIG"] || "frigate.yml"
         logger.info("Reading Frigate configuration from " + filename)
-        return yaml.load(await fs.readFile(filename, "utf-8"))
+        return yaml.load(await fs.readFile(filename, "utf-8")) as FrigateConfig
     } catch (e) {
-        logger.info(`Could not read config file: ${e.message}`)
+        logger.info(`Could not read config file: ${e}`)
         return undefined
     }
 }
 
 export async function readFrigateConfigFromApi(frigate: Frigate): Promise<FrigateConfig> {
     logger.info("Reading Frigate configuration from API")
-    return yaml.load(await frigate.getConfigYaml())
+    return yaml.load(await frigate.getConfigYaml()) as FrigateConfig
 }

@@ -1,9 +1,11 @@
 import {CameraConfig} from "./config"
+// @ts-ignore waiting for 1.0.0 of onvif in TS
 import {Cam} from "onvif/promises"
 import {createLogger, createEventLogger} from "./logger"
 import {Logger} from "winston"
 import Frigate, {FrigateLabel} from "./frigate"
 import MqttWrapper from "./MqttWrapper"
+import assert from "node:assert";
 
 const logger = createLogger("camera")
 const eventLogger = createEventLogger()
@@ -14,10 +16,10 @@ interface TopicState {
 }
 
 enum TopicCategory {
-    motion,
-    person,
-    vehicle,
-    animal,
+    motion = "motion",
+    person = "person",
+    vehicle = "vehicle",
+    animal = "animal",
 }
 
 interface TopicPreset {
@@ -69,18 +71,18 @@ const TOPIC_PRESETS: Record<string, TopicPreset> = {
 const DEFAULT_TOPIC_CATEGORY_EXCLUDES: Set<TopicCategory> = new Set<TopicCategory>((process.env["TOPIC_CATEGORY_EXCLUDES"] || "")
     .split(" *, *")
     .filter(s => s in TopicCategory)
-    .map(s => TopicCategory[s])
+    .map(s => s as TopicCategory)
 )
 
 export default class Camera {
-    private name: string
-    private cam
+    private readonly name: string
+    private cam: any
     private logger: Logger
-    private hasEvents: boolean
-    private topicState: Record<string, TopicState>
+    private hasEvents: boolean = false
+    private readonly topicState: Record<string, TopicState>
     private mqtt: MqttWrapper;
 
-    constructor(name: string, cam, mqtt: MqttWrapper) {
+    constructor(name: string, cam: any, mqtt: MqttWrapper) {
         this.name = name
         this.cam = cam
         this.mqtt = mqtt;
@@ -109,8 +111,8 @@ export default class Camera {
             if (this.hasEvents) {
                 const eventProperties = await this.cam.getEventProperties()
                 this.logger.debug(`Event properties: ${JSON.stringify(eventProperties, null, 2)}`)
-                let events = {}
-                const walkEvents = (path: string, nodes) => {
+                let events: Record<string, string> = {}
+                const walkEvents = (path: string, nodes: object) => {
                     for (let [k, v] of Object.entries(nodes)) {
                         if (v["messageDescription"]) {
                             events[path + k] = v
@@ -130,7 +132,7 @@ export default class Camera {
     }
 
     private listen(frigate: Frigate) {
-        this.cam.on('event', (event) => {
+        this.cam.on('event', (event: any) => {
             try {
                 eventLogger.info("Event", {cameraName: this.name, event})
                 const topic = this.getEventTopic(event)
@@ -164,10 +166,10 @@ export default class Camera {
             }
         })
         this.cam.on("connect", () => this.logger.info("Got connect event"))
-        this.cam.on("eventsError", error => this.logger.error("Got events error", error))
+        this.cam.on("eventsError", (error: any) => this.logger.error("Got events error", error))
     }
 
-    private getEventTopic(event): string {
+    private getEventTopic(event: any): string {
         let topic: string = event.topic._
         const colon = topic.indexOf(':')
         if (colon >= 0) {
@@ -176,7 +178,7 @@ export default class Camera {
         return topic
     }
 
-    private getEventData(event): Record<string, any> {
+    private getEventData(event: any): Record<string, any> {
         if (event.message.message.data && event.message.message.data.simpleItem) {
             if (Array.isArray(event.message.message.data.simpleItem)) {
                 let obj = []
@@ -217,6 +219,7 @@ export default class Camera {
     }
 
     static async create(cameraName: string, cameraConfig: CameraConfig, frigate: Frigate, mqtt: MqttWrapper) {
+        assert(cameraConfig.onvif !== undefined);
         const cam = new Cam({
             hostname: cameraConfig.onvif.host,
             port: cameraConfig.onvif.port || 8000,

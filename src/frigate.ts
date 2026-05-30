@@ -1,5 +1,5 @@
 import {createLogger} from "./logger";
-import axios, {Axios, AxiosError} from "axios";
+import axios, {type AxiosInstance, AxiosError} from "axios";
 
 const logger = createLogger("frigate")
 
@@ -38,9 +38,9 @@ interface EndEventRequest {
  * See https://docs.frigate.video/integrations/api/frigate-http-api
  */
 export default class Frigate {
-    private client: Axios;
+    private client: AxiosInstance;
 
-    constructor(baseURL) {
+    constructor(baseURL: string) {
         logger.info(`Using Frigate API at ${baseURL}`)
         this.client = axios.create({
             baseURL,
@@ -66,8 +66,8 @@ export default class Frigate {
         return resp.data
     }
 
-    public async createEvent(cameraName: string, label: FrigateLabel, body: Partial<CreateEventRequest>): Promise<string> {
-        let eventId: string = undefined
+    public async createEvent(cameraName: string, label: FrigateLabel, body: Partial<CreateEventRequest>): Promise<string|undefined> {
+        let eventId: string|undefined = undefined
         try {
             const resp = await this.client.post<CreateEventResponse>(
                 `/api/events/${encodeURIComponent(cameraName)}/${encodeURIComponent(label)}/create`, body
@@ -89,12 +89,12 @@ export default class Frigate {
         }
     }
 
-    private formatAxiosError(e) {
+    private formatAxiosError(e: unknown) {
         if (e instanceof AxiosError) {
             return {
                 status: e.status,
                 message: e.message,
-                body: e.response.data
+                body: e.response?.data
             }
         }
         return e
