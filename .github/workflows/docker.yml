@@ -1,6 +1,7 @@
 name: Docker
 
 on:
+  workflow_dispatch: {}
   push:
     # Publish `main` as Docker `latest` image.
     branches:
@@ -11,7 +12,7 @@ on:
       - v*
 
   # Run tests for any PRs.
-  pull_request:
+  #pull_request:
 
 env:
   IMAGE_NAME: frigate-onvif-trigger
